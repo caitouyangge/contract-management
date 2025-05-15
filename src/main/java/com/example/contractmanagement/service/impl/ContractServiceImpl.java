@@ -16,6 +16,7 @@ import com.example.contractmanagement.dto.ContractAssignmentDTO;
 import com.example.contractmanagement.dto.ContractDraftDTO;
 import com.example.contractmanagement.model.Contract;
 import com.example.contractmanagement.repository.ContractRepository;
+import com.example.contractmanagement.repository.UserRepository;
 import com.example.contractmanagement.service.ContractService;
 
 @Service
@@ -25,9 +26,12 @@ public class ContractServiceImpl implements ContractService {
     private String uploadDir;
     
     private final ContractRepository contractRepository;
+    private final UserRepository userRepository;
     
-    public ContractServiceImpl(ContractRepository contractRepository) {
+    public ContractServiceImpl(ContractRepository contractRepository, 
+                             UserRepository userRepository) {
         this.contractRepository = contractRepository;
+        this.userRepository = userRepository;
     }
     
     @Override
@@ -42,7 +46,8 @@ public class ContractServiceImpl implements ContractService {
         
         // 文件存储（可选）
         if (dto.getFile() != null) {
-            String path = "./uploads/" + dto.getFile().getOriginalFilename();
+            // String path = "./uploads/" + dto.getFile().getOriginalFilename();
+            String path = storeFile(dto.getFile());
             try {
                 dto.getFile().transferTo(new File(path));
             } catch (IOException ex) {
@@ -78,20 +83,27 @@ public class ContractServiceImpl implements ContractService {
     }
 
     @Override
-    public Contract assignContract(ContractAssignmentDTO assignmentDTO) {
-        Contract contract = contractRepository.findById(assignmentDTO.getContractId())
-                .orElseThrow(() -> new RuntimeException("合同不存在"));
-
-        // 将用户ID列表转换为逗号分隔的字符串
-        String countersignUserIds = String.join(",", 
-                assignmentDTO.getCountersignUserIds().stream()
-                        .map(String::valueOf)
-                        .toArray(String[]::new));
-
-        contract.setCountersignUsers(countersignUserIds);
-        contract.setApprovalUserId(assignmentDTO.getApprovalUserId());
-        contract.setStatus(Contract.STATUS_ASSIGNED); // 更新状态为已分配
-
-        return contractRepository.save(contract);
+    public Contract assignContract(ContractAssignmentDTO dto) {
+        Contract contract = contractRepository.findById(dto.getContractId())
+            .orElseThrow(() -> new RuntimeException("合同不存在"));
+         
+        // 调试日志
+    System.out.println("接收到的会签人员IDs: " + dto.getCountersignUserIds());
+    
+        // 设置会签人员（多个ID）
+    contract.setCountersignUserIds(dto.getCountersignUserIds());
+    
+    // 调试日志
+    System.out.println("转换后的数据库字段值: " + contract.getCountersignUsers());
+    
+        // 设置审批人员
+        contract.setApprovalUserId(dto.getApprovalUserId());
+        
+        // 更新状态
+        contract.setStatus(Contract.STATUS_COUNTERSIGNING);
+        
+        Contract saved = contractRepository.save(contract);
+        System.out.println("保存后的数据库值: " + saved.getCountersignUsers());
+        return saved;
     }
 }

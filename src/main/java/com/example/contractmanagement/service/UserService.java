@@ -13,7 +13,10 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
-
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+    
     public boolean register(String username, String password, String email, String role) {
         if (userRepository.findByUsername(username) != null) {
             return false; // 用户已存在
@@ -53,9 +56,15 @@ public class UserService {
     }
 
     public List<User> findAssignableUsers() {
-        return userRepository.findByAuthorizedTrueAndRoleIn(List.of("admin", "operator"));
+        return userRepository.findByAuthorizedTrueAndRoleIn(
+            List.of("admin", "operator")
+        );
     }
-
+    public boolean validateUserRoles(List<Long> userIds) {
+        List<User> users = userRepository.findAllById(userIds);
+        return users.stream()
+            .allMatch(u -> "admin".equals(u.getRole()) || "operator".equals(u.getRole()));
+    }
     
 }
 

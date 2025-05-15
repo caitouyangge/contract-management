@@ -1,6 +1,10 @@
 package com.example.contractmanagement.model;
 
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -13,10 +17,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Data;
+import lombok.Setter;
 
 @Entity
 @Table(name = "contracts")
 @Data
+@Setter // 单独添加Setter注解
 public class Contract {
 
     public static final String STATUS_DRAFT = "DRAFT"; // 起草
@@ -55,7 +61,7 @@ public class Contract {
     @Column(name = "creator_id", nullable = false)
     private Long creatorId;
     
-    @Column(name = "countersign_users")
+    @Column(name = "countersign_users", length = 255) // 明确指定长度
     private String countersignUsers;
     
     @Column(name = "approval_user_id")
@@ -76,4 +82,25 @@ public class Contract {
     // 非数据库字段，用于显示起草人姓名
     @Transient
     private String drafter;
+
+    // 添加辅助方法
+    public List<Long> getCountersignUserIds() {
+        if (this.countersignUsers == null || this.countersignUsers.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(this.countersignUsers.split(","))
+                    .map(Long::valueOf)
+                    .collect(Collectors.toList());
+    }
+
+    // 移除Lombok的@Setter注解对这个方法的影响
+    public void setCountersignUserIds(List<Long> userIds) {
+        if(userIds == null || userIds.isEmpty()) {
+            this.countersignUsers = null;
+        } else {
+            this.countersignUsers = userIds.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+        }
+    }
 }
