@@ -167,6 +167,33 @@ public class ContractServiceImpl implements ContractService {
         
         contract.setContent(updatedContent);
         contract.setStatus(Contract.STATUS_FINALIZED);
+        contract.setFinalizedAt(LocalDate.now());
         return contractRepository.save(contract);
     }
+    // 在ContractServiceImpl.java中添加实现
+@Override
+public List<Contract> getPendingApprovalContracts(Long approvalUserId) {
+    return contractRepository.findByApprovalUserIdAndStatus(approvalUserId, Contract.STATUS_FINALIZED);
+}
+
+@Override
+public Contract approveContract(Long contractId, String approvalResult, String approvalComment) {
+    Contract contract = contractRepository.findById(contractId)
+        .orElseThrow(() -> new RuntimeException("合同不存在"));
+    
+    if (approvalResult.equals("approve")) {
+        contract.setStatus(Contract.STATUS_APPROVED);
+    } else {
+        contract.setStatus(Contract.STATUS_DRAFT); // 退回修改
+    }
+    
+    // 保存审批意见
+    String comment = String.format("%s|%s|%s", 
+        userRepository.findById(contract.getApprovalUserId()).get().getUsername(),
+        LocalDate.now(),
+        approvalComment);
+    contract.setCountersignComments(comment);
+    
+    return contractRepository.save(contract);
+}
 }

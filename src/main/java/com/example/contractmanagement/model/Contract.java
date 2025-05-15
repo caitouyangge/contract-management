@@ -73,6 +73,9 @@ public class Contract {
     @Column(name = "sign_user_id")
     private Long signUserId;
 
+    @Column(name = "finalized_at")
+    private LocalDate finalizedAt;
+
     
 
     @CreationTimestamp

@@ -15,4 +15,7 @@ public interface ContractService {
     void submitCountersign(CountersignRequest request);
     List<Contract> getContractsReadyForFinalization(Long creatorId);
     Contract finalizeContract(Long contractId, String updatedContent);
+    // 在ContractService接口中添加
+List<Contract> getPendingApprovalContracts(Long approvalUserId);
+Contract approveContract(Long contractId, String approvalResult, String approvalComment);
 }

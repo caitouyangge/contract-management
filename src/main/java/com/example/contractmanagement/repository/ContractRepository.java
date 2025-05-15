@@ -15,4 +15,6 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
     @Param("status") String status, 
     @Param("userId") String userId);
     List<Contract> findByCreatorIdAndStatus(Long creatorId, String status);
+    // 在ContractRepository.java中添加
+List<Contract> findByApprovalUserIdAndStatus(Long approvalUserId, String status);
 }

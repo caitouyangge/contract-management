@@ -1,12 +1,14 @@
 package com.example.contractmanagement.controller;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -101,4 +103,26 @@ public String draftContract(@ModelAttribute ContractDraftDTO dto) {
         contractService.finalizeContract(request.getContractId(), request.getUpdatedContent());
         return ResponseEntity.ok("合同定稿成功");
     }
+    // 在ContractController.java中添加
+@GetMapping("/pending-approval")
+public ResponseEntity<List<Contract>> getPendingApprovalContracts(@RequestParam Long approvalUserId) {
+    List<Contract> contracts = contractService.getPendingApprovalContracts(approvalUserId);
+    return ResponseEntity.ok(contracts);
+}
+
+@PostMapping("/{contractId}/approve")
+public ResponseEntity<String> approveContract(
+        @PathVariable Long contractId,
+        @RequestBody Map<String, String> request) {
+    
+    String result = request.get("approvalResult");
+    String comment = request.get("approvalComment");
+    
+    if (!"approve".equals(result) && !"reject".equals(result)) {
+        return ResponseEntity.badRequest().body("审批结果无效");
+    }
+    
+    contractService.approveContract(contractId, result, comment);
+    return ResponseEntity.ok("审批提交成功");
+}
 }
