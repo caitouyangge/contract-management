@@ -39,6 +39,9 @@ public class Contract {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "creator_name")
+    private String creatorName;
     
     @Column(nullable = false)
     private String name;
@@ -70,6 +73,8 @@ public class Contract {
     @Column(name = "sign_user_id")
     private Long signUserId;
 
+    
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDate createdAt;
@@ -77,6 +82,12 @@ public class Contract {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDate updatedAt;
+
+
+
+    // 在Contract类中添加
+    @Column(name = "countersign_comments", columnDefinition = "TEXT")
+    private String countersignComments;
 
 
     // 非数据库字段，用于显示起草人姓名

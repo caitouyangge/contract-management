@@ -10,10 +10,13 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.contractmanagement.dto.ContractAssignmentDTO;
 import com.example.contractmanagement.dto.ContractDraftDTO;
+import com.example.contractmanagement.dto.ContractFinalizeRequest;
+import com.example.contractmanagement.dto.CountersignRequest;
 import com.example.contractmanagement.model.Contract;
 import com.example.contractmanagement.model.User;
 import com.example.contractmanagement.service.ContractService;
@@ -72,5 +75,30 @@ public String draftContract(@ModelAttribute ContractDraftDTO dto) {
     public ResponseEntity<List<Contract>> getAssignableContracts() {
         List<Contract> contracts = contractService.getAssignableContracts();
         return ResponseEntity.ok(contracts);
+    }
+    @GetMapping("/countersign")
+    public ResponseEntity<List<Contract>> getCountersignContracts(@RequestParam Long userId) {
+        List<Contract> contracts = contractService.getCountersignContracts(userId);
+        return ResponseEntity.ok(contracts);
+    }
+
+    @PostMapping("/countersign")
+    public ResponseEntity<String> submitCountersign(
+            @RequestBody CountersignRequest request) {
+        contractService.submitCountersign(request);
+        return ResponseEntity.ok("会签意见提交成功");
+    }
+    @GetMapping("/finalize")
+    public ResponseEntity<List<Contract>> getContractsReadyForFinalization(
+            @RequestParam Long creatorId) {
+        List<Contract> contracts = contractService.getContractsReadyForFinalization(creatorId);
+        return ResponseEntity.ok(contracts);
+    }
+
+    @PostMapping("/finalize")
+    public ResponseEntity<String> finalizeContract(
+            @RequestBody ContractFinalizeRequest request) {
+        contractService.finalizeContract(request.getContractId(), request.getUpdatedContent());
+        return ResponseEntity.ok("合同定稿成功");
     }
 }

@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +15,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.contractmanagement.dto.ContractAssignmentDTO;
 import com.example.contractmanagement.dto.ContractDraftDTO;
+import com.example.contractmanagement.dto.CountersignRequest;
 import com.example.contractmanagement.model.Contract;
+import com.example.contractmanagement.model.User;
 import com.example.contractmanagement.repository.ContractRepository;
 import com.example.contractmanagement.repository.UserRepository;
 import com.example.contractmanagement.service.ContractService;
@@ -42,6 +45,14 @@ public class ContractServiceImpl implements ContractService {
         contract.setStartDate(dto.getStartDate());
         contract.setContent(dto.getContent());
         contract.setCreatorId(creatorId); // 直接使用参数
+        contract.setStatus("DRAFT");
+        
+        // 新增：设置creatorName
+        String creatorName = userRepository.findById(creatorId)
+            .map(User::getUsername)
+            .orElse("未知用户");
+        contract.setCreatorName(creatorName);
+        
         contract.setStatus("DRAFT");
         
         // 文件存储（可选）
@@ -105,5 +116,57 @@ public class ContractServiceImpl implements ContractService {
         Contract saved = contractRepository.save(contract);
         System.out.println("保存后的数据库值: " + saved.getCountersignUsers());
         return saved;
+    }
+
+    @Override
+    public List<Contract> getCountersignContracts(Long userId) {
+        return contractRepository.findByStatusAndCountersignUsersContaining(
+            Contract.STATUS_COUNTERSIGNING, 
+            String.valueOf(userId)
+        );
+    }
+
+    @Override
+    public void submitCountersign(CountersignRequest request) {
+        Contract contract = contractRepository.findById(request.getContractId())
+            .orElseThrow(() -> new RuntimeException("合同不存在"));
+        
+            
+
+        // 添加会签意见
+        String comment = String.format("%s|%s|%s", 
+            userRepository.findById(request.getUserId()).get().getUsername(),
+            LocalDate.now(),
+            request.getOpinion());
+        
+        if (contract.getCountersignComments() == null) {
+            contract.setCountersignComments(comment);
+        } else {
+            contract.setCountersignComments(contract.getCountersignComments() + ";" + comment);
+        }
+        
+        // 检查是否所有会签人员都已提交意见
+        List<Long> countersignUserIds = contract.getCountersignUserIds();
+        int submittedCount = contract.getCountersignComments().split(";").length;
+        
+        if (submittedCount >= countersignUserIds.size()) {
+            contract.setStatus(Contract.STATUS_COUNTERSIGNED);
+        }
+        
+        contractRepository.save(contract);
+    }
+        @Override
+    public List<Contract> getContractsReadyForFinalization(Long creatorId) {
+        return contractRepository.findByCreatorIdAndStatus(creatorId, Contract.STATUS_COUNTERSIGNED);
+    }
+
+    @Override
+    public Contract finalizeContract(Long contractId, String updatedContent) {
+        Contract contract = contractRepository.findById(contractId)
+            .orElseThrow(() -> new RuntimeException("合同不存在"));
+        
+        contract.setContent(updatedContent);
+        contract.setStatus(Contract.STATUS_FINALIZED);
+        return contractRepository.save(contract);
     }
 }
